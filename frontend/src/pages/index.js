@@ -8,3 +8,5 @@ export { default as ContactPage } from './ContactPage';
 export { default as Login } from './Login';
 export { default as Register } from './Register';
 export { default as PageNotFound } from './PageNotFound';
+export { default as AdminDashboard } from './AdminDashboard';
+export { default as AdminLogin } from './AdminLogin';  

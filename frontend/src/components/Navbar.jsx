@@ -88,6 +88,11 @@ const Navbar = () => {
                 </NavLink>
               </>
             )}
+
+            <NavLink to="/admin-login" className="btn btn-outline-dark m-2">
+              <i className="fa fa-sign-in mr-1"></i> Admin
+            </NavLink>
+
             <NavLink to="/cart" className="btn btn-outline-dark m-2">
               <i className="fa fa-shopping-cart mr-1"></i> Cart ({state.length})
             </NavLink>
