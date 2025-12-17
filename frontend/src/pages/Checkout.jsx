@@ -1,9 +1,27 @@
 import { Footer, Navbar } from "../components";
-import { useSelector } from "react-redux";
-import { Link } from "react-router-dom";
-
+import { useSelector,useDispatch  } from "react-redux";
+import { Link,useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import { emptyCart } from "../redux/action"; 
 const Checkout = () => {
   const state = useSelector((state) => state.handleCart);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  // State to handle form inputs
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    address: "",
+    country: "India",
+    state: "Punjab",
+    zip: "",
+  });
+
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.id]: e.target.value });
+  };
 
   const EmptyCart = () => {
     return (
@@ -18,6 +36,40 @@ const Checkout = () => {
         </div>
       </div>
     );
+  };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    let subtotal = 0;
+    state.forEach((item) => (subtotal += item.price * item.qty));
+    const totalAmount = subtotal + 30.0;
+
+    const orderPayload = {
+      userData: formData,
+      cartItems: state,
+      totalAmount: totalAmount,
+    };
+
+    try {
+      const response = await fetch("http://localhost:5000/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(orderPayload),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert(`Order Successful! Your Order ID is: ${data.orderId}`);
+        dispatch(emptyCart());
+        navigate("/");
+      } else {
+        alert("Error: " + data.error);
+      }
+    } catch (error) {
+      console.error("Checkout Error:", error);
+      alert("Failed to connect to the server.");
+    }
   };
 
   const ShowCheckout = () => {
@@ -67,7 +119,7 @@ const Checkout = () => {
                   <h4 className="mb-0">Billing address</h4>
                 </div>
                 <div className="card-body">
-                  <form className="needs-validation" novalidate>
+                  <form className="needs-validation" novalidate onSubmit={handleSubmit}>
                     <div className="row g-3">
                       <div className="col-sm-6 my-1">
                         <label htmlFor="firstName" className="form-label">
@@ -78,6 +130,8 @@ const Checkout = () => {
                           className="form-control"
                           id="firstName"
                           placeholder=""
+                          value={formData.firstName}
+                          onChange={handleInputChange}
                           required
                         />
                         <div className="invalid-feedback">
@@ -94,6 +148,8 @@ const Checkout = () => {
                           className="form-control"
                           id="lastName"
                           placeholder=""
+                          value={formData.lastName}
+                         onChange={handleInputChange}
                           required
                         />
                         <div className="invalid-feedback">
@@ -110,6 +166,8 @@ const Checkout = () => {
                           className="form-control"
                           id="email"
                           placeholder="you@example.com"
+                          value={formData.email}
+        onChange={handleInputChange}
                           required
                         />
                         <div className="invalid-feedback">
@@ -127,6 +185,8 @@ const Checkout = () => {
                           className="form-control"
                           id="address"
                           placeholder="1234 Main St"
+                          value={formData.address}
+                          onChange={handleInputChange}
                           required
                         />
                         <div className="invalid-feedback">
@@ -184,6 +244,8 @@ const Checkout = () => {
                           className="form-control"
                           id="zip"
                           placeholder=""
+                          value={formData.zip}
+                          onChange={handleInputChange}
                           required
                         />
                         <div className="invalid-feedback">
@@ -269,7 +331,7 @@ const Checkout = () => {
 
                     <button
                       className="w-100 btn btn-primary "
-                      type="submit" disabled
+                      type="submit" 
                     >
                       Continue to checkout
                     </button>
