@@ -57,6 +57,84 @@ app.get('/api/products/category/:category', async (req, res) => {
   }
 });
 
+// ---------- Auth: Register (plain text password) ----------
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    // Check if user already exists
+    const existing = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existing) {
+      return res.status(409).json({ error: 'Email is already registered' });
+    }
+
+    const user = await prisma.user.create({
+      data: {
+        email,
+        password,      // plain text on purpose for now
+        name: name || null,
+        role: 'CUSTOMER',
+      },
+    });
+
+    // Do not send password back in response
+    res.status(201).json({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      createdAt: user.createdAt,
+    });
+  } catch (error) {
+    console.error('Error registering user:', error);
+    res.status(500).json({ error: 'Failed to register user' });
+  }
+});
+
+// ---------- Auth: Login (plain text password match) ----------
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Plain text comparison (no bcrypt)
+    if (user.password !== password) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // For now, no JWT, no cookies. Just send back the user.
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.error('Error logging in:', error);
+    res.status(500).json({ error: 'Failed to login' });
+  }
+});
+
 app.get('/api/admin/orders', async (req, res) => {
   try {
     const orders = await prisma.order.findMany({
@@ -85,7 +163,8 @@ app.get('/api/admin/stats', async (req, res) => {
     orders: orderCount,
     products: productCount
   });
-}); 
+});
+
 app.patch('/api/admin/products/:id', async (req, res) => {
   const { stock } = req.body;
   try {
@@ -191,6 +270,7 @@ app.post('/api/checkout', async (req, res) => {
     });
   }
 });
+
 // Test route
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'E-commerce API is running' });

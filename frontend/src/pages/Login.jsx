@@ -1,7 +1,41 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import { Footer, Navbar } from "../components";
 
 const Login = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.error || "Login failed");
+      }
+
+      // Save user in localStorage for now (plain text passwords stay in DB only)
+      localStorage.setItem("user", JSON.stringify(data.user));
+
+      toast.success("Logged in successfully");
+      navigate("/");
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || "Login failed");
+    }
+  };
+
   return (
     <>
       <Navbar />
@@ -10,7 +44,7 @@ const Login = () => {
         <hr />
         <div className="row my-4 h-100">
           <div className="col-md-4 col-lg-4 col-sm-8 mx-auto">
-            <form>
+            <form onSubmit={handleSubmit}>
               <div className="my-3">
                 <label htmlFor="floatingInput">Email address</label>
                 <input
@@ -18,6 +52,9 @@ const Login = () => {
                   className="form-control"
                   id="floatingInput"
                   placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
                 />
               </div>
               <div className="my-3">
@@ -27,25 +64,24 @@ const Login = () => {
                   className="form-control"
                   id="floatingPassword"
                   placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
                 />
               </div>
               <div className="my-3">
                 <p>
-                  New Here?{" "}
+                  New here?{" "}
                   <Link
                     to="/register"
                     className="text-decoration-underline text-info"
                   >
                     Register
-                  </Link>{" "}
+                  </Link>
                 </p>
               </div>
               <div className="text-center">
-                <button
-                  className="my-2 mx-auto btn btn-dark"
-                  type="submit"
-                  disabled
-                >
+                <button className="my-2 mx-auto btn btn-dark" type="submit">
                   Login
                 </button>
               </div>
