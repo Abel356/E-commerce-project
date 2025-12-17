@@ -30,6 +30,9 @@ const Navbar = () => {
                         <NavLink to="/login" className="btn btn-outline-dark m-2">
                             <i className="fa fa-sign-in mr-1"></i> Login
                         </NavLink>
+                        <NavLink to="/admin-login" className="btn btn-outline-dark m-2">
+                            <i className="fa fa-sign-in mr-1"></i> Admin
+                        </NavLink>
                         <NavLink to="/register" className="btn btn-outline-dark m-2">
                             <i className="fa fa-user-plus mr-1"></i> Register
                         </NavLink>

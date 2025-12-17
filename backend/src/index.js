@@ -57,6 +57,140 @@ app.get('/api/products/category/:category', async (req, res) => {
   }
 });
 
+app.get('/api/admin/orders', async (req, res) => {
+  try {
+    const orders = await prisma.order.findMany({
+      include: {
+        user: true,
+        items: {
+          include: { product: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(orders);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch orders" });
+  }
+});
+
+// Get simple stats for the dashboard cards
+app.get('/api/admin/stats', async (req, res) => {
+  const totalSales = await prisma.order.aggregate({ _sum: { total: true } });
+  const orderCount = await prisma.order.count();
+  const productCount = await prisma.product.count();
+  
+  res.json({
+    revenue: totalSales._sum.total || 0,
+    orders: orderCount,
+    products: productCount
+  });
+}); 
+app.patch('/api/admin/products/:id', async (req, res) => {
+  const { stock } = req.body;
+  try {
+    const updated = await prisma.product.update({
+      where: { id: parseInt(req.params.id) },
+      data: { stock: parseInt(stock) }
+    });
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: "Update failed" });
+  }
+});
+
+// Update User Info
+app.patch('/api/admin/users/:id', async (req, res) => {
+  const { name, email } = req.body;
+  try {
+    const updated = await prisma.user.update({
+      where: { id: parseInt(req.params.id) },
+      data: { name, email }
+    });
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: "Update failed" });
+  }
+});
+
+// Get all users with their history
+app.get('/api/admin/users', async (req, res) => {
+  const users = await prisma.user.findMany({
+    include: { orders: true },
+  });
+  res.json(users);
+});
+
+// 4. Checkout Process
+app.post('/api/checkout', async (req, res) => {
+  const { userData, cartItems, totalAmount } = req.body;
+
+  try {
+    // We use a transaction to ensure that if any part fails, 
+    // nothing is saved to the database.
+    const result = await prisma.$transaction(async (tx) => {
+      
+      // A. Handle User (Find existing or create new)
+      const user = await tx.user.upsert({
+        where: { email: userData.email },
+        update: { name: `${userData.firstName} ${userData.lastName}` },
+        create: {
+          email: userData.email,
+          name: `${userData.firstName} ${userData.lastName}`,
+          password: 'guest_password_123', // In a real app, generate a random one or use Auth
+          role: 'CUSTOMER'
+        },
+      });
+
+      // B. Create the Order and OrderItems
+      const order = await tx.order.create({
+        data: {
+          userId: user.id,
+          total: parseFloat(totalAmount),
+          items: {
+            create: cartItems.map((item) => ({
+              productId: item.id,
+              quantity: item.qty,
+            })),
+          },
+        },
+      });
+
+      // C. Update Inventory (Subtract stock)
+      for (const item of cartItems) {
+        const product = await tx.product.findUnique({ where: { id: item.id } });
+        
+        if (!product || product.stock < item.qty) {
+          throw new Error(`Product ${item.title} is out of stock!`);
+        }
+
+        await tx.product.update({
+          where: { id: item.id },
+          data: {
+            stock: {
+              decrement: item.qty
+            }
+          }
+        });
+      }
+
+      return order;
+    });
+
+    res.status(201).json({ 
+      success: true, 
+      message: 'Order placed successfully', 
+      orderId: result.id 
+    });
+
+  } catch (error) {
+    console.error('Checkout error:', error.message);
+    res.status(400).json({ 
+      success: false, 
+      error: error.message || 'Checkout failed' 
+    });
+  }
+});
 // Test route
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'E-commerce API is running' });

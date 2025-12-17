@@ -14,7 +14,7 @@ import {
   Login,
   Register,
   Checkout,
-  PageNotFound,
+  PageNotFound,AdminDashboard,AdminLogin,
 } from './pages'
 
 function App() {
@@ -34,6 +34,8 @@ function App() {
             <Route path="/checkout" element={<Checkout />} />
             <Route path="*" element={<PageNotFound />} />
             <Route path="/product/*" element={<PageNotFound />} />
+            <Route path="/admin-login" element={<AdminLogin />} />
+            <Route path="/admin" element={<AdminDashboard />} />
           </Routes>
         </Provider>
       </ScrollToTop>
