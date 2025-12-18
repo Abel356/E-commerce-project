@@ -14,7 +14,7 @@ import {
   Login,
   Register,
   Checkout,
-  PageNotFound,AdminDashboard,AdminLogin,
+  PageNotFound,AdminDashboard,AdminLogin,OrderSummary,
 } from './pages'
 
 function App() {
@@ -36,6 +36,7 @@ function App() {
             <Route path="/products/*" element={<PageNotFound />} />
             <Route path="/admin-login" element={<AdminLogin />} />
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/order-summary" element={<OrderSummary />} />
           </Routes>
         </Provider>
       </ScrollToTop>
