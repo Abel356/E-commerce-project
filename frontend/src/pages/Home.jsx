@@ -5,10 +5,10 @@ function Home() {
     <>
       <Navbar />
       <Main />
-      <Product />
+      <Product showSearch />
       <Footer />
     </>
-  )
+  );
 }
 
 export default Home;

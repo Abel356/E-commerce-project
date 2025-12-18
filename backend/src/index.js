@@ -8,23 +8,44 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:3000', // Your React frontend URL
+  origin: 'http://localhost:3000', // react frontend URL
   credentials: true
 }));
 app.use(express.json());
 
-// 1. Get all products
+// get all products (optionally filter by q + category)
 app.get('/api/products', async (req, res) => {
   try {
-    const products = await prisma.product.findMany();
+    const q = (req.query.q || "").toString().trim();
+    const category = (req.query.category || "").toString().trim();
+
+    const andConditions = [];
+
+    if (category) {
+      andConditions.push({ category });
+    }
+
+    if (q) {
+      andConditions.push({
+        OR: [
+          { title: { contains: q, mode: "insensitive" } },
+          { description: { contains: q, mode: "insensitive" } },
+          { category: { contains: q, mode: "insensitive" } },
+        ],
+      });
+    }
+
+    const where = andConditions.length ? { AND: andConditions } : undefined;
+
+    const products = await prisma.product.findMany({ where });
     res.json(products);
   } catch (error) {
-    console.error('Error fetching products:', error);
-    res.status(500).json({ error: 'Failed to fetch products' });
+    console.error("Error fetching products:", error);
+    res.status(500).json({ error: "Failed to fetch products" });
   }
 });
 
-// 2. Get single product by ID
+// get single product by ID
 app.get('/api/products/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -43,7 +64,7 @@ app.get('/api/products/:id', async (req, res) => {
   }
 });
 
-// 3. Get products by category
+// get products by category
 app.get('/api/products/category/:category', async (req, res) => {
   try {
     const { category } = req.params;
@@ -120,7 +141,7 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    // For now, no JWT, no cookies. Just send back the user.
+    // no JWT or cookies for now, just send back the user
     res.json({
       user: {
         id: user.id,
@@ -152,7 +173,7 @@ app.get('/api/admin/orders', async (req, res) => {
   }
 });
 
-// Get simple stats for the dashboard cards
+// get simple stats for the dashboard cards
 app.get('/api/admin/stats', async (req, res) => {
   const totalSales = await prisma.order.aggregate({ _sum: { total: true } });
   const orderCount = await prisma.order.count();
@@ -192,7 +213,7 @@ app.patch('/api/admin/users/:id', async (req, res) => {
   }
 });
 
-// Get all users with their history
+// get all users with their history
 app.get('/api/admin/users', async (req, res) => {
   const users = await prisma.user.findMany({
     include: { orders: true },
@@ -200,7 +221,7 @@ app.get('/api/admin/users', async (req, res) => {
   res.json(users);
 });
 
-// 4. Checkout Process
+// checkout process
 app.post('/api/checkout', async (req, res) => {
   const { userData, cartItems, totalAmount } = req.body;
 
@@ -271,12 +292,12 @@ app.post('/api/checkout', async (req, res) => {
   }
 });
 
-// Test route
+// test route
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'E-commerce API is running' });
 });
 
-// Start server
+// start server
 app.listen(PORT, () => {
   console.log(`✅ Backend server running on http://localhost:${PORT}`);
   console.log(`📦 API Endpoints:`);

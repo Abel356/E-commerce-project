@@ -4,10 +4,10 @@ const Products = () => {
   return (
     <>
       <Navbar />
-      <Product />
+      <Product showSearch />
       <Footer />
     </>
-  )
-}
+  );
+};
 
 export default Products;

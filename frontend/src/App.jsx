@@ -24,7 +24,7 @@ function App() {
         <Provider store={store}>
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/product" element={<Products />} />
+            <Route path="/products" element={<Products />} />
             <Route path="/product/:id" element={<Product />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/contact" element={<ContactPage />} />
@@ -33,7 +33,7 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="*" element={<PageNotFound />} />
-            <Route path="/product/*" element={<PageNotFound />} />
+            <Route path="/products/*" element={<PageNotFound />} />
             <Route path="/admin-login" element={<AdminLogin />} />
             <Route path="/admin" element={<AdminDashboard />} />
           </Routes>
