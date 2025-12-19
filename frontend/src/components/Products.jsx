@@ -13,7 +13,7 @@ const Products = ({ showSearch = true }) => {
   const [filter, setFilter] = useState(data);
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
-  let componentMounted = true;
+  const [sortBy, setSortBy] = useState("default");
 
   const dispatch = useDispatch();
 
@@ -33,24 +33,30 @@ const Products = ({ showSearch = true }) => {
   };
 
   useEffect(() => {
+    let isMounted = true;
+
     const getProducts = async () => {
-      setLoading(true);
+      try {
+        setLoading(true);
+        const response = await fetch("/api/products");
+        const json = await response.json();
 
-      // Keep existing call (works with the new backend search too)
-      const response = await fetch("/api/products");
-
-      if (componentMounted) {
-        setData(await response.clone().json());
-        setFilter(await response.json());
-        setLoading(false);
+        if (isMounted) {
+          setData(json);
+          setFilter(json);
+        }
+      } catch (err) {
+        console.error("Failed to load products:", err);
+      } finally {
+        if (isMounted) setLoading(false);
       }
-
-      return () => {
-        componentMounted = false;
-      };
     };
 
     getProducts();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const Loading = () => {
@@ -86,8 +92,35 @@ const Products = ({ showSearch = true }) => {
     setFilter(updatedList);
   };
 
+  const getVisibleProducts = () => {
+    // filter by search first
+    const base = filter.filter(matchesQuery);
+
+    // copy before sort (sort mutates arrays)
+    const list = [...base];
+
+    switch (sortBy) {
+      case "price-asc":
+        list.sort((a, b) => Number(a.price) - Number(b.price));
+        break;
+      case "price-desc":
+        list.sort((a, b) => Number(b.price) - Number(a.price));
+        break;
+      case "name-asc":
+        list.sort((a, b) => (a.title ?? "").localeCompare(b.title ?? ""));
+        break;
+      case "name-desc":
+        list.sort((a, b) => (b.title ?? "").localeCompare(a.title ?? ""));
+        break;
+      default:
+        break;
+    }
+
+    return list;
+  };
+
   const ShowProducts = () => {
-    const visible = filter.filter(matchesQuery);
+    const visible = getVisibleProducts();
 
     return (
       <>
@@ -121,6 +154,20 @@ const Products = ({ showSearch = true }) => {
           </div>
         )}
 
+        <div className="col-12 col-md-12 mb-3">
+          <select
+            className="form-select"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+          >
+            <option value="default">Sort: Default</option>
+            <option value="price-asc">Price: Low to High</option>
+            <option value="price-desc">Price: High to Low</option>
+            <option value="name-asc">Name: A to Z</option>
+            <option value="name-desc">Name: Z to A</option>
+          </select>
+        </div>
+
         {visible.length === 0 ? (
           <div className="col-12 text-center py-4">
             <p className="text-muted m-0">No products match your search.</p>
@@ -138,10 +185,10 @@ const Products = ({ showSearch = true }) => {
                   />
                   <div className="card-body">
                     <h5 className="card-title">
-                      {product.title.substring(0, 12)}.....
+                      {product.title.length > 50 ? `${product.title.substring(0, 50)}...` : product.title}
                     </h5>
                     <p className="card-text">
-                      {product.description.substring(0, 90)}....
+                      {product.description.substring(0, 90)}...
                     </p>
                   </div>
                   <ul className="list-group list-group-flush">
