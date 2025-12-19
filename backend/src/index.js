@@ -81,7 +81,11 @@ app.get('/api/products/category/:category', async (req, res) => {
 // ---------- Auth: Register (plain text password) ----------
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const {
+      name, email, password, 
+      shippingAddress, shippingAddress2, shippingCountry, shippingState, shippingZip,
+      cardName, cardNumber, cardExpiry,
+    } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
@@ -98,14 +102,24 @@ app.post('/api/auth/register', async (req, res) => {
 
     const user = await prisma.user.create({
       data: {
-        email,
-        password,      // plain text on purpose for now
-        name: name || null,
+        email: email.trim(),
+        password, // plain text on purpose for now
+        name: name?.trim() || null,
         role: 'CUSTOMER',
+
+        shippingAddress: shippingAddress?.trim() || null,
+        shippingAddress2: shippingAddress2?.trim() || null,
+        shippingCountry: shippingCountry?.trim() || null,
+        shippingState: shippingState?.trim() || null,
+        shippingZip: shippingZip?.trim() || null,
+
+        cardName: cardName?.trim() || null,
+        cardNumber: cardNumber?.trim() || null,
+        cardExpiry: cardExpiry?.trim() || null,
       },
     });
 
-    // Do not send password back in response
+    // dont send password back in response
     res.status(201).json({
       id: user.id,
       email: user.email,
@@ -224,6 +238,10 @@ app.get('/api/admin/users', async (req, res) => {
 // checkout process
 app.post('/api/checkout', async (req, res) => {
   const { userData, cartItems, totalAmount } = req.body;
+  
+  if (!userData?.email) {
+    return res.status(400).json({ success: false, error: "Email is required" });
+  }
 
   try {
     // We use a transaction to ensure that if any part fails, 
@@ -231,14 +249,31 @@ app.post('/api/checkout', async (req, res) => {
     const result = await prisma.$transaction(async (tx) => {
       
       // A. Handle User (Find existing or create new)
+      const fullName =
+        userData?.name ||
+        [userData?.firstName, userData?.lastName].filter(Boolean).join(" ").trim() ||
+        "Guest";
+
       const user = await tx.user.upsert({
         where: { email: userData.email },
-        update: { name: `${userData.firstName} ${userData.lastName}` },
+        update: {
+          name: fullName,
+          shippingAddress: userData.address || null,
+          shippingAddress2: userData.address2 || null,
+          shippingCountry: userData.country || null,
+          shippingState: userData.state || null,
+          shippingZip: userData.zip || null,
+        },
         create: {
           email: userData.email,
-          name: `${userData.firstName} ${userData.lastName}`,
-          password: 'guest_password_123', // In a real app, generate a random one or use Auth
-          role: 'CUSTOMER'
+          name: fullName,
+          password: "guest_password_123", // plain text for now
+          role: "CUSTOMER",
+          shippingAddress: userData.address || null,
+          shippingAddress2: userData.address2 || null,
+          shippingCountry: userData.country || null,
+          shippingState: userData.state || null,
+          shippingZip: userData.zip || null,
         },
       });
 
@@ -290,6 +325,113 @@ app.post('/api/checkout', async (req, res) => {
       error: error.message || 'Checkout failed' 
     });
   }
+});
+
+// Get a user's profile (excluding password)
+app.get("/api/users/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: "Invalid user id" });
+
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      createdAt: true,
+
+      shippingAddress: true,
+      shippingAddress2: true,
+      shippingCountry: true,
+      shippingState: true,
+      shippingZip: true,
+
+      cardName: true,
+      cardNumber: true,
+      cardExpiry: true,
+    },
+  });
+
+  if (!user) return res.status(404).json({ error: "User not found" });
+  res.json(user);
+});
+
+// Update a user's profile (excluding password)
+app.put("/api/users/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: "Invalid user id" });
+
+  const {
+    name,
+    shippingAddress,
+    shippingAddress2,
+    shippingCountry,
+    shippingState,
+    shippingZip,
+    cardName,
+    cardNumber,
+    cardExpiry,
+  } = req.body;
+
+  try {
+    const updated = await prisma.user.update({
+      where: { id },
+      data: {
+        name: name ?? undefined,
+        shippingAddress: shippingAddress ?? undefined,
+        shippingAddress2: shippingAddress2 ?? undefined,
+        shippingCountry: shippingCountry ?? undefined,
+        shippingState: shippingState ?? undefined,
+        shippingZip: shippingZip ?? undefined,
+        cardName: cardName ?? undefined,
+        cardNumber: cardNumber ?? undefined,
+        cardExpiry: cardExpiry ?? undefined,
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        createdAt: true,
+
+        shippingAddress: true,
+        shippingAddress2: true,
+        shippingCountry: true,
+        shippingState: true,
+        shippingZip: true,
+
+        cardName: true,
+        cardNumber: true,
+        cardExpiry: true,
+      },
+    });
+
+    res.json(updated);
+  } catch (e) {
+    console.error("Update user error:", e);
+    res.status(500).json({ error: "Failed to update user" });
+  }
+});
+
+// Purchase history
+app.get("/api/users/:id/orders", async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: "Invalid user id" });
+
+  const orders = await prisma.order.findMany({
+    where: { userId: id },
+    orderBy: { createdAt: "desc" },
+    include: {
+      items: {
+        include: {
+          product: true,
+        },
+      },
+    },
+  });
+
+  res.json(orders);
 });
 
 // test route

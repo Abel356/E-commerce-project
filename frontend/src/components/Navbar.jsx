@@ -1,22 +1,19 @@
 import { useEffect, useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 
 const Navbar = () => {
   const state = useSelector((state) => state.handleCart);
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch {
-        setUser(null);
-      }
-    }
-  }, []);
+    if (!storedUser) return setUser(null);
+    try { setUser(JSON.parse(storedUser)); }
+    catch { setUser(null); }
+  }, [location.pathname]);
 
   const handleLogout = () => {
     localStorage.removeItem("user");
@@ -70,6 +67,11 @@ const Navbar = () => {
             {user ? (
               <>
                 <span className="mx-2">Hi, {user.name || user.email}</span>
+
+                <NavLink to="/account" className="btn btn-outline-dark m-2">
+                  <i className="fa fa-user me-1"></i> Account
+                </NavLink>
+
                 <button
                   className="btn btn-outline-dark m-2"
                   type="button"
