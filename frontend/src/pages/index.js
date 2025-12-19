@@ -9,5 +9,6 @@ export { default as Login } from './Login';
 export { default as Register } from './Register';
 export { default as PageNotFound } from './PageNotFound';
 export { default as AdminDashboard } from './AdminDashboard';
-export { default as AdminLogin } from './AdminLogin'; 
-export { default as OrderSummary } from './OrderSummary';  
+export { default as AdminLogin } from './AdminLogin';
+export { default as OrderSummary } from './OrderSummary';
+export { default as Account } from './Account';

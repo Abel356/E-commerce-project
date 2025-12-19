@@ -6,6 +6,14 @@ const prisma = new PrismaClient();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// ----- Mock payment authorization (every 3rd attempt fails) -----
+let paymentAttemptCounter = 0;
+function authorizePaymentMock() {
+  paymentAttemptCounter += 1;
+  // deny every 3rd request
+  return paymentAttemptCounter % 3 !== 0;
+}
+
 // Middleware
 app.use(cors({
   origin: 'http://localhost:3000', // react frontend URL
@@ -81,7 +89,11 @@ app.get('/api/products/category/:category', async (req, res) => {
 // ---------- Auth: Register (plain text password) ----------
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const {
+      name, email, password, 
+      shippingAddress, shippingAddress2, shippingCountry, shippingState, shippingZip,
+      cardName, cardNumber, cardExpiry,
+    } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
@@ -98,14 +110,24 @@ app.post('/api/auth/register', async (req, res) => {
 
     const user = await prisma.user.create({
       data: {
-        email,
-        password,      // plain text on purpose for now
-        name: name || null,
+        email: email.trim(),
+        password, // plain text on purpose for now
+        name: name?.trim() || null,
         role: 'CUSTOMER',
+
+        shippingAddress: shippingAddress?.trim() || null,
+        shippingAddress2: shippingAddress2?.trim() || null,
+        shippingCountry: shippingCountry?.trim() || null,
+        shippingState: shippingState?.trim() || null,
+        shippingZip: shippingZip?.trim() || null,
+
+        cardName: cardName?.trim() || null,
+        cardNumber: cardNumber?.trim() || null,
+        cardExpiry: cardExpiry?.trim() || null,
       },
     });
 
-    // Do not send password back in response
+    // dont send password back in response
     res.status(201).json({
       id: user.id,
       email: user.email,
@@ -156,19 +178,60 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+// Admin: orders with filtering (customer, product, date range, search)
 app.get('/api/admin/orders', async (req, res) => {
   try {
+    const userId = req.query.userId ? Number(req.query.userId) : null;
+    const productId = req.query.productId ? Number(req.query.productId) : null;
+
+    const q = (req.query.q || "").toString().trim();
+    const from = req.query.from ? new Date(req.query.from) : null;
+    const toRaw = req.query.to ? new Date(req.query.to) : null;
+
+    const where = {};
+
+    if (Number.isInteger(userId)) {
+      where.userId = userId;
+    }
+
+    if (Number.isInteger(productId)) {
+      where.items = { some: { productId } };
+    }
+
+    if (from || toRaw) {
+      where.createdAt = {};
+      if (from) where.createdAt.gte = from;
+
+      if (toRaw) {
+        // include the entire "to" day
+        const to = new Date(toRaw);
+        to.setHours(23, 59, 59, 999);
+        where.createdAt.lte = to;
+      }
+    }
+
+    if (q) {
+      const maybeId = Number(q);
+      where.OR = [
+        ...(Number.isInteger(maybeId) ? [{ id: maybeId }] : []),
+        { user: { email: { contains: q, mode: "insensitive" } } },
+        { user: { name: { contains: q, mode: "insensitive" } } },
+        { items: { some: { product: { title: { contains: q, mode: "insensitive" } } } } },
+      ];
+    }
+
     const orders = await prisma.order.findMany({
+      where,
       include: {
         user: true,
-        items: {
-          include: { product: true }
-        }
+        items: { include: { product: true } }
       },
       orderBy: { createdAt: 'desc' }
     });
+
     res.json(orders);
   } catch (error) {
+    console.error("Admin orders error:", error);
     res.status(500).json({ error: "Failed to fetch orders" });
   }
 });
@@ -199,16 +262,56 @@ app.patch('/api/admin/products/:id', async (req, res) => {
   }
 });
 
-// Update User Info
+// Admin: Update customer info (name/email + shipping + billing)
 app.patch('/api/admin/users/:id', async (req, res) => {
-  const { name, email } = req.body;
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: "Invalid user id" });
+
+  const {
+    name, email,
+    shippingAddress, shippingAddress2, shippingCountry, shippingState, shippingZip,
+    cardName, cardNumber, cardExpiry,
+  } = req.body;
+
   try {
     const updated = await prisma.user.update({
-      where: { id: parseInt(req.params.id) },
-      data: { name, email }
+      where: { id },
+      data: {
+        name: name ?? undefined,
+        email: email ?? undefined,
+
+        shippingAddress: shippingAddress ?? undefined,
+        shippingAddress2: shippingAddress2 ?? undefined,
+        shippingCountry: shippingCountry ?? undefined,
+        shippingState: shippingState ?? undefined,
+        shippingZip: shippingZip ?? undefined,
+
+        cardName: cardName ?? undefined,
+        cardNumber: cardNumber ?? undefined,
+        cardExpiry: cardExpiry ?? undefined,
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        createdAt: true,
+
+        shippingAddress: true,
+        shippingAddress2: true,
+        shippingCountry: true,
+        shippingState: true,
+        shippingZip: true,
+
+        cardName: true,
+        cardNumber: true,
+        cardExpiry: true,
+      },
     });
+
     res.json(updated);
   } catch (error) {
+    console.error("Admin update user error:", error);
     res.status(500).json({ error: "Update failed" });
   }
 });
@@ -221,75 +324,215 @@ app.get('/api/admin/users', async (req, res) => {
   res.json(users);
 });
 
-// checkout process
+// checkout process (logged-in users only)
 app.post('/api/checkout', async (req, res) => {
-  const { userData, cartItems, totalAmount } = req.body;
+  const { userId, cartItems, totalAmount, shipping, payment, saveToProfile } = req.body;
+
+  const uid = Number(userId);
+  if (!Number.isInteger(uid)) {
+    return res.status(400).json({ success: false, error: "userId is required (login/register first)" });
+  }
+
+  if (!Array.isArray(cartItems) || cartItems.length === 0) {
+    return res.status(400).json({ success: false, error: "Cart is empty" });
+  }
+
+  const total = Number(totalAmount);
+  if (!Number.isFinite(total)) {
+    return res.status(400).json({ success: false, error: "Invalid totalAmount" });
+  }
+
+  // mock payment authorization
+  if (!authorizePaymentMock()) {
+    return res.status(402).json({
+      success: false,
+      error: "Credit Card Authorization Failed.",
+    });
+  }
 
   try {
-    // We use a transaction to ensure that if any part fails, 
-    // nothing is saved to the database.
     const result = await prisma.$transaction(async (tx) => {
-      
-      // A. Handle User (Find existing or create new)
-      const user = await tx.user.upsert({
-        where: { email: userData.email },
-        update: { name: `${userData.firstName} ${userData.lastName}` },
-        create: {
-          email: userData.email,
-          name: `${userData.firstName} ${userData.lastName}`,
-          password: 'guest_password_123', // In a real app, generate a random one or use Auth
-          role: 'CUSTOMER'
-        },
-      });
+      const user = await tx.user.findUnique({ where: { id: uid } });
+      if (!user) {
+        throw new Error("User not found. Please login again.");
+      }
 
-      // B. Create the Order and OrderItems
+      // Optional: update the user's saved defaults (ONLY if user chose to save)
+      if (saveToProfile) {
+        await tx.user.update({
+          where: { id: uid },
+          data: {
+            shippingAddress: shipping?.shippingAddress ?? undefined,
+            shippingAddress2: shipping?.shippingAddress2 ?? undefined,
+            shippingCountry: shipping?.shippingCountry ?? undefined,
+            shippingState: shipping?.shippingState ?? undefined,
+            shippingZip: shipping?.shippingZip ?? undefined,
+
+            cardName: payment?.cardName ?? undefined,
+            cardNumber: payment?.cardNumber ?? undefined,
+            cardExpiry: payment?.cardExpiry ?? undefined,
+          },
+        });
+      }
+
+      // Validate stock first (fail early)
+      for (const item of cartItems) {
+        const pid = Number(item.id);
+        const qty = Number(item.qty);
+
+        if (!Number.isInteger(pid) || !Number.isInteger(qty) || qty <= 0) {
+          throw new Error("Invalid cart item");
+        }
+
+        const product = await tx.product.findUnique({ where: { id: pid } });
+        if (!product) throw new Error("Product not found");
+        if (product.stock < qty) throw new Error(`Product "${product.title}" is out of stock!`);
+      }
+
+      // Create order + items
       const order = await tx.order.create({
         data: {
-          userId: user.id,
-          total: parseFloat(totalAmount),
+          userId: uid,
+          total: total,
           items: {
             create: cartItems.map((item) => ({
-              productId: item.id,
-              quantity: item.qty,
+              productId: Number(item.id),
+              quantity: Number(item.qty),
             })),
           },
         },
       });
 
-      // C. Update Inventory (Subtract stock)
+      // Decrement stock
       for (const item of cartItems) {
-        const product = await tx.product.findUnique({ where: { id: item.id } });
-        
-        if (!product || product.stock < item.qty) {
-          throw new Error(`Product ${item.title} is out of stock!`);
-        }
-
         await tx.product.update({
-          where: { id: item.id },
-          data: {
-            stock: {
-              decrement: item.qty
-            }
-          }
+          where: { id: Number(item.id) },
+          data: { stock: { decrement: Number(item.qty) } },
         });
       }
 
       return order;
     });
 
-    res.status(201).json({ 
-      success: true, 
-      message: 'Order placed successfully', 
-      orderId: result.id 
+    res.status(201).json({
+      success: true,
+      message: "Order placed successfully",
+      orderId: result.id,
     });
-
   } catch (error) {
-    console.error('Checkout error:', error.message);
-    res.status(400).json({ 
-      success: false, 
-      error: error.message || 'Checkout failed' 
+    console.error("Checkout error:", error.message);
+    res.status(400).json({
+      success: false,
+      error: error.message || "Checkout failed",
     });
   }
+});
+
+// Get a user's profile (excluding password)
+app.get("/api/users/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: "Invalid user id" });
+
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      createdAt: true,
+
+      shippingAddress: true,
+      shippingAddress2: true,
+      shippingCountry: true,
+      shippingState: true,
+      shippingZip: true,
+
+      cardName: true,
+      cardNumber: true,
+      cardExpiry: true,
+    },
+  });
+
+  if (!user) return res.status(404).json({ error: "User not found" });
+  res.json(user);
+});
+
+// Update a user's profile (excluding password)
+app.put("/api/users/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: "Invalid user id" });
+
+  const {
+    name,
+    shippingAddress,
+    shippingAddress2,
+    shippingCountry,
+    shippingState,
+    shippingZip,
+    cardName,
+    cardNumber,
+    cardExpiry,
+  } = req.body;
+
+  try {
+    const updated = await prisma.user.update({
+      where: { id },
+      data: {
+        name: name ?? undefined,
+        shippingAddress: shippingAddress ?? undefined,
+        shippingAddress2: shippingAddress2 ?? undefined,
+        shippingCountry: shippingCountry ?? undefined,
+        shippingState: shippingState ?? undefined,
+        shippingZip: shippingZip ?? undefined,
+        cardName: cardName ?? undefined,
+        cardNumber: cardNumber ?? undefined,
+        cardExpiry: cardExpiry ?? undefined,
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        createdAt: true,
+
+        shippingAddress: true,
+        shippingAddress2: true,
+        shippingCountry: true,
+        shippingState: true,
+        shippingZip: true,
+
+        cardName: true,
+        cardNumber: true,
+        cardExpiry: true,
+      },
+    });
+
+    res.json(updated);
+  } catch (e) {
+    console.error("Update user error:", e);
+    res.status(500).json({ error: "Failed to update user" });
+  }
+});
+
+// Purchase history
+app.get("/api/users/:id/orders", async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: "Invalid user id" });
+
+  const orders = await prisma.order.findMany({
+    where: { userId: id },
+    orderBy: { createdAt: "desc" },
+    include: {
+      items: {
+        include: {
+          product: true,
+        },
+      },
+    },
+  });
+
+  res.json(orders);
 });
 
 // test route
