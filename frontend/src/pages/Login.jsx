@@ -28,6 +28,20 @@ const Login = () => {
       // Save user in localStorage for now (plain text passwords stay in DB only)
       localStorage.setItem("user", JSON.stringify(data.user));
 
+      // tell Navbar/others user changed
+      window.dispatchEvent(new Event("authChanged"));
+
+      // merge guest cart into this user's DB cart
+      const guestCart = JSON.parse(localStorage.getItem("cart_guest") || "[]");
+      if (guestCart.length) {
+        await fetch(`/api/users/${data.user.id}/cart/merge`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items: guestCart }),
+        });
+        localStorage.removeItem("cart_guest");
+      }
+
       toast.success("Logged in successfully");
       navigate("/");
     } catch (err) {

@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
+import { emptyCart } from "../redux/action";
 
 const Navbar = () => {
   const state = useSelector((state) => state.handleCart);
+  const dispatch = useDispatch();
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -16,7 +18,25 @@ const Navbar = () => {
   }, [location.pathname]);
 
   const handleLogout = () => {
+    let oldUserId = null;
+
+    try {
+      const u = JSON.parse(localStorage.getItem("user") || "null");
+      oldUserId = u?.id || null;
+    } catch {}
+
     localStorage.removeItem("user");
+
+    // clear cart persistence keys
+    localStorage.removeItem("cart_guest");
+    if (oldUserId) localStorage.removeItem(`cart_user_${oldUserId}`);
+
+    // clear redux cart immediately so UI updates
+    dispatch(emptyCart());
+
+    // optional: if you’re using authChanged elsewhere
+    window.dispatchEvent(new Event("authChanged"));
+
     setUser(null);
     navigate("/");
   };
