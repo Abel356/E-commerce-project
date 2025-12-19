@@ -670,6 +670,13 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'E-commerce API is running' });
 });
 
+const path = require("path");
+app.use(express.static(path.join(__dirname, "../public")));
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../public", "index.html"));
+});
+
 // start server
 app.listen(PORT, () => {
   console.log(`✅ Backend server running on http://localhost:${PORT}`);
