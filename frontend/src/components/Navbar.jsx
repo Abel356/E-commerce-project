@@ -70,6 +70,11 @@ const Navbar = () => {
             {user ? (
               <>
                 <span className="mx-2">Hi, {user.name || user.email}</span>
+
+                <NavLink to="/account" className="btn btn-outline-dark m-2">
+                  <i className="fa fa-user me-1"></i> Account
+                </NavLink>
+
                 <button
                   className="btn btn-outline-dark m-2"
                   type="button"

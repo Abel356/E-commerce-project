@@ -14,7 +14,11 @@ import {
   Login,
   Register,
   Checkout,
-  PageNotFound,AdminDashboard,AdminLogin,OrderSummary,
+  PageNotFound,
+  AdminDashboard,
+  AdminLogin,
+  OrderSummary,
+  Account,
 } from './pages'
 
 function App() {
@@ -37,6 +41,7 @@ function App() {
             <Route path="/admin-login" element={<AdminLogin />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/order-summary" element={<OrderSummary />} />
+            <Route path="/account" element={<Account />} />
           </Routes>
         </Provider>
       </ScrollToTop>
