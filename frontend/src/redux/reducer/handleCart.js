@@ -1,46 +1,44 @@
-// get initial state from localStorage if available
-const getInitialCart = () => {
-  const storedCart = localStorage.getItem("cart");
-  return storedCart ? JSON.parse(storedCart) : [];
-};
+const initialState = [];
 
-const handleCart = (state = getInitialCart(), action) => {
+const handleCart = (state = initialState, action) => {
   const product = action.payload;
-  let updatedCart;
 
   switch (action.type) {
-    case "ADDITEM":
-      // check if product in cart already
+    case "ADDITEM": {
       const exist = state.find((x) => x.id === product.id);
+
       if (exist) {
-        // increase quantity
-        updatedCart = state.map((x) =>
+        return state.map((x) =>
           x.id === product.id ? { ...x, qty: x.qty + 1 } : x
         );
-      } else {
-        updatedCart = [...state, { ...product, qty: 1 }];
       }
-      // update localStorage
-      localStorage.setItem("cart", JSON.stringify(updatedCart));
-      return updatedCart;
 
-    case "DELITEM":
-      const exist2 = state.find((x) => x.id === product.id);
-      if (exist2.qty === 1) {
-        updatedCart = state.filter((x) => x.id !== exist2.id);
-      } else {
-        updatedCart = state.map((x) =>
-          x.id === product.id ? { ...x, qty: x.qty - 1 } : x
-        );
+      return [...state, { ...product, qty: 1 }];
+    }
+
+    case "DELITEM": {
+      const exist = state.find((x) => x.id === product.id);
+      if (!exist) return state;
+
+      if (exist.qty === 1) {
+        return state.filter((x) => x.id !== product.id);
       }
-      // update localStorage
-      localStorage.setItem("cart", JSON.stringify(updatedCart));
-      return updatedCart;
 
-    case "EMPTYCART":
-        updatedCart = [];
-        localStorage.removeItem("cart");
-        return updatedCart;
+      return state.map((x) =>
+        x.id === product.id ? { ...x, qty: x.qty - 1 } : x
+      );
+    }
+
+    case "EMPTY_CART": {
+      return [];
+    }
+
+    // This replaces the entire cart from DB (or merged result)
+    // payload must be an array shaped like: [{ ...productFields, qty }, ...]
+    case "SET_CART": {
+      const items = Array.isArray(action.payload) ? action.payload : [];
+      return items;
+    }
 
     default:
       return state;
