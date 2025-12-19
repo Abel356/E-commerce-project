@@ -178,19 +178,60 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+// Admin: orders with filtering (customer, product, date range, search)
 app.get('/api/admin/orders', async (req, res) => {
   try {
+    const userId = req.query.userId ? Number(req.query.userId) : null;
+    const productId = req.query.productId ? Number(req.query.productId) : null;
+
+    const q = (req.query.q || "").toString().trim();
+    const from = req.query.from ? new Date(req.query.from) : null;
+    const toRaw = req.query.to ? new Date(req.query.to) : null;
+
+    const where = {};
+
+    if (Number.isInteger(userId)) {
+      where.userId = userId;
+    }
+
+    if (Number.isInteger(productId)) {
+      where.items = { some: { productId } };
+    }
+
+    if (from || toRaw) {
+      where.createdAt = {};
+      if (from) where.createdAt.gte = from;
+
+      if (toRaw) {
+        // include the entire "to" day
+        const to = new Date(toRaw);
+        to.setHours(23, 59, 59, 999);
+        where.createdAt.lte = to;
+      }
+    }
+
+    if (q) {
+      const maybeId = Number(q);
+      where.OR = [
+        ...(Number.isInteger(maybeId) ? [{ id: maybeId }] : []),
+        { user: { email: { contains: q, mode: "insensitive" } } },
+        { user: { name: { contains: q, mode: "insensitive" } } },
+        { items: { some: { product: { title: { contains: q, mode: "insensitive" } } } } },
+      ];
+    }
+
     const orders = await prisma.order.findMany({
+      where,
       include: {
         user: true,
-        items: {
-          include: { product: true }
-        }
+        items: { include: { product: true } }
       },
       orderBy: { createdAt: 'desc' }
     });
+
     res.json(orders);
   } catch (error) {
+    console.error("Admin orders error:", error);
     res.status(500).json({ error: "Failed to fetch orders" });
   }
 });
@@ -221,16 +262,56 @@ app.patch('/api/admin/products/:id', async (req, res) => {
   }
 });
 
-// Update User Info
+// Admin: Update customer info (name/email + shipping + billing)
 app.patch('/api/admin/users/:id', async (req, res) => {
-  const { name, email } = req.body;
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: "Invalid user id" });
+
+  const {
+    name, email,
+    shippingAddress, shippingAddress2, shippingCountry, shippingState, shippingZip,
+    cardName, cardNumber, cardExpiry,
+  } = req.body;
+
   try {
     const updated = await prisma.user.update({
-      where: { id: parseInt(req.params.id) },
-      data: { name, email }
+      where: { id },
+      data: {
+        name: name ?? undefined,
+        email: email ?? undefined,
+
+        shippingAddress: shippingAddress ?? undefined,
+        shippingAddress2: shippingAddress2 ?? undefined,
+        shippingCountry: shippingCountry ?? undefined,
+        shippingState: shippingState ?? undefined,
+        shippingZip: shippingZip ?? undefined,
+
+        cardName: cardName ?? undefined,
+        cardNumber: cardNumber ?? undefined,
+        cardExpiry: cardExpiry ?? undefined,
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        createdAt: true,
+
+        shippingAddress: true,
+        shippingAddress2: true,
+        shippingCountry: true,
+        shippingState: true,
+        shippingZip: true,
+
+        cardName: true,
+        cardNumber: true,
+        cardExpiry: true,
+      },
     });
+
     res.json(updated);
   } catch (error) {
+    console.error("Admin update user error:", error);
     res.status(500).json({ error: "Update failed" });
   }
 });
