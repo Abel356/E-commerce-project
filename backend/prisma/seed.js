@@ -34,7 +34,7 @@ const products = [
     price: 15.99,
     description: "The Gildan Men's Ultra Cotton Short Sleeve T Shirt features: 100% cotton fabric ,Ultra tight knit surface, Seamless twin needle collar, Taped neck and shoulders, Twin needle sleeves and hem, Tubular body, Safety colours are compliant with ANSI/ISEA High Visibility Standards.",
     category: "women's clothing",
-    image: "C:\Users\sabua\EECS4413-ecommerce-project\frontend\public\pictures\shirt 1.png",
+    image: "/pictures/shirt 1.png",
     rating: { rate: 2.1, count: 430 },
     stock: 100
   },
@@ -43,7 +43,7 @@ const products = [
     price: 695,
     description: "925 STERLING SILVER& BIRTHSRONE - Crafted in high quality hypoallergenic 925 sterling silver with simulated Sapphire and AAA cubic zirconia, it won't change color or get dark. Lead free & nickel free & anti-allergy, safe for the skin.",
     category: "jewelery",
-    image: "C:\Users\sabua\EECS4413-ecommerce-project\frontend\public\pictures\j1.png",
+    image: "/pictures/j1.png",
     rating: { rate: 4.6, count: 400 },
     stock: 10
   },
@@ -52,7 +52,7 @@ const products = [
     price: 168,
     description: "The link charm bracelet is made of 925 sterling silver with round dot 5A cubic zirconia. The delicate beauty and Intricate design will make it an eye-catching piece of jewelry in any events. With its double strand unique design, this bracelet would get you a lot of complements for any occasion, for everyday, dating, work or formal occasions.",
     category: "jewelery",
-    image: "C:\Users\sabua\EECS4413-ecommerce-project\frontend\public\pictures\j2.png",
+    image: "/pictures/j2.png",
     rating: { rate: 3.9, count: 70 },
     stock: 20
   },
@@ -61,7 +61,7 @@ const products = [
     price: 9.99,
     description: "This rhodium plated necklace combines the precision and quality of sparkling Swarovski crystals with a timeless necklace design, for a touch of glamour for every occasion. The Attract necklace features a dainty eye-catching circular clear crystal pendant paired with a delicate rhodium plated chain",
     category: "jewelery",
-    image: "C:\Users\sabua\EECS4413-ecommerce-project\frontend\public\pictures\j3.png",
+    image: "/pictures/j3.png",
     rating: { rate: 3, count: 400 },
     stock: 20
   },
@@ -70,7 +70,7 @@ const products = [
     price: 10.99,
     description: " Swarovski jewelry will maintain its brilliance over time when simple care practices are observed; remove before contact with water, lotions or perfumes to extend your jewelry's life. The Bella Drop Pierced Earrings combine the precision and quality of Swarovski crystals with a rhodium plated setting, for a trendy and refined accessory",
     category: "jewelery",
-    image: "C:\Users\sabua\EECS4413-ecommerce-project\frontend\public\pictures\j4.png",
+    image: "/pictures/j4.png",
     rating: { rate: 1.9, count: 100 },
     stock: 20
   },
@@ -79,7 +79,7 @@ const products = [
     price: 64,
     description: "The ASUS ROG Astral GeForce RTX 5090 White OC Edition introduces ROG's first quad-fan graphics card, coupled with a patented vapor chamber, increased heatsink fin density, a phase-change GPU thermal pad, towering default clock speeds, boosted power delivery, and more. These premium innovations – amplified by an eye-catching die-cast frame and metal GPU bracket – combine to deliver absolute performance for demanding gaming scenarios.",
     category: "electronics",
-    image: "C:\Users\sabua\EECS4413-ecommerce-project\frontend\public\pictures\e1.png",
+    image: "/pictures/e1.png",
     rating: { rate: 3.3, count: 203 },
     stock: 20
   },
@@ -88,7 +88,7 @@ const products = [
     price: 109, 
     description: "SUPERCHARGED BY M3 — Get more done faster with a next-generation chip from Apple. From creating presentations to gaming, you’ll fly through work and play. IMMERSIVE DISPLAY—The 24-inch 4.5K Retina display features 500 nits of brightness and support for one billion colours. Everything from streaming movies to editing photos is sharp and colourful.",
     category: "electronics",
-    image: "C:\Users\sabua\EECS4413-ecommerce-project\frontend\public\pictures\e2.png",
+    image: "/pictures/e2.png",
     rating: { rate: 2.9, count: 470 },
     stock: 20
   },
@@ -97,7 +97,7 @@ const products = [
     price: 64,
     description: "Get random read/write speeds that are 40%/55% faster than 980 PRO; Experience up to 1400K/1550K IOPS, while sequential read/write speeds up to 7,450/6,900 MB/s reach near the max performance of PCIe 4.0. Up to 65% improvement in random performance enables faster loads for an ultimate gaming experience on PS5 and DirectStorage PC games",
     category: "electronics",
-    image: "C:\Users\sabua\EECS4413-ecommerce-project\frontend\public\pictures\e3.png",
+    image: "/pictures/e3.png",
     rating: { rate: 3.3, count: 203 },
     stock: 20
   },
@@ -106,7 +106,7 @@ const products = [
     price: 109,
     description: "Faster than MacBook Air M3 [1] with unrivaled power for seamless productivity and creativity. Blazing NPU speed enables AI-powered applications Remarkably bright with enriched HDR tech, unveils crisper whites, darker blacks, and an extended color spectrum",
     category: "electronics",
-    image: "C:\Users\sabua\EECS4413-ecommerce-project\frontend\public\pictures\e4.png",
+    image: "/pictures/e4.png",
     rating: { rate: 2.9, count: 470 },
     stock: 20
   },
@@ -115,7 +115,7 @@ const products = [
     price: 109,
     description: "Unique Design: Sleeve detail adds to this top, it elevates it from a basic long sleeve tee to a dressy look. Classic crewneck brings more stylish to the tunic.",
     category: "women's clothing",
-    image: "C:\Users\sabua\EECS4413-ecommerce-project\frontend\public\pictures\w1.png",
+    image: "/pictures/w1.png",
     rating: { rate: 2.9, count: 470 },
     stock: 20
   },
@@ -124,7 +124,7 @@ const products = [
     price: 64,
     description: "This Long-Sleeved Women Dress Is Made Of Soft And Stretchy Soft Ribbed Knit Fabric Gives You a Super Soft Wearing Comfort. You Can Really Snuggle Up In The Comfy Material - Regardless Of Whether You'Re Spending The Day Off On The Couch Or You'Re Out.",
     category: "women's clothing",
-    image: "C:\Users\sabua\EECS4413-ecommerce-project\frontend\public\pictures\w2.png",
+    image: "/pictures/w2.png",
     rating: { rate: 3.3, count: 203 },
     stock: 20
   },
@@ -133,7 +133,7 @@ const products = [
     price: 109,
     description: "The Ribbed Knit With Slight Fuzzy Inner Dress Skilfully Combines Comfortable Wearing Properties And a Cool Look. The Mock Neck Is Protecting Your Neck From Drafts And Looking Classy At The Same Time.",
     category: "women's clothing",
-    image: "C:\Users\sabua\EECS4413-ecommerce-project\frontend\public\pictures\w3.png",
+    image: "/pictures/w3.png",
     rating: { rate: 2.9, count: 470 },
     stock: 20
   }
