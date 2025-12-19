@@ -81,7 +81,11 @@ app.get('/api/products/category/:category', async (req, res) => {
 // ---------- Auth: Register (plain text password) ----------
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const {
+      name, email, password, 
+      shippingAddress, shippingAddress2, shippingCountry, shippingState, shippingZip,
+      cardName, cardNumber, cardExpiry,
+    } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
@@ -98,14 +102,24 @@ app.post('/api/auth/register', async (req, res) => {
 
     const user = await prisma.user.create({
       data: {
-        email,
-        password,      // plain text on purpose for now
-        name: name || null,
+        email: email.trim(),
+        password, // plain text on purpose for now
+        name: name?.trim() || null,
         role: 'CUSTOMER',
+
+        shippingAddress: shippingAddress?.trim() || null,
+        shippingAddress2: shippingAddress2?.trim() || null,
+        shippingCountry: shippingCountry?.trim() || null,
+        shippingState: shippingState?.trim() || null,
+        shippingZip: shippingZip?.trim() || null,
+
+        cardName: cardName?.trim() || null,
+        cardNumber: cardNumber?.trim() || null,
+        cardExpiry: cardExpiry?.trim() || null,
       },
     });
 
-    // Do not send password back in response
+    // dont send password back in response
     res.status(201).json({
       id: user.id,
       email: user.email,
@@ -224,6 +238,10 @@ app.get('/api/admin/users', async (req, res) => {
 // checkout process
 app.post('/api/checkout', async (req, res) => {
   const { userData, cartItems, totalAmount } = req.body;
+  
+  if (!userData?.email) {
+    return res.status(400).json({ success: false, error: "Email is required" });
+  }
 
   try {
     // We use a transaction to ensure that if any part fails, 
@@ -231,10 +249,6 @@ app.post('/api/checkout', async (req, res) => {
     const result = await prisma.$transaction(async (tx) => {
       
       // A. Handle User (Find existing or create new)
-      if (!userData?.email) {
-        return res.status(400).json({ success: false, error: "Email is required" });
-      }
-
       const fullName =
         userData?.name ||
         [userData?.firstName, userData?.lastName].filter(Boolean).join(" ").trim() ||
