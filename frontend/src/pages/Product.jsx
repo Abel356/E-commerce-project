@@ -82,6 +82,9 @@ const Product = () => {
                 <i className="fa fa-star"></i>
               </p>
               <h3 className="display-6  my-4">${product.price}</h3>
+              <p className="lead mb-2">
+                <strong>Quantity remaining:</strong> {product?.stock ?? 0}
+              </p>
               <p className="lead">{product.description}</p>
               <button
                 className="btn btn-outline-dark"
