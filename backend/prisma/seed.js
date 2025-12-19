@@ -33,7 +33,7 @@ const products = [
     title: "Gildan Men's Ultra Cotton Short Sleeve T Shirt",
     price: 15.99,
     description: "The Gildan Men's Ultra Cotton Short Sleeve T Shirt features: 100% cotton fabric ,Ultra tight knit surface, Seamless twin needle collar, Taped neck and shoulders, Twin needle sleeves and hem, Tubular body, Safety colours are compliant with ANSI/ISEA High Visibility Standards.",
-    category: "women's clothing",
+    category: "men's clothing",
     image: "/pictures/shirt 1.png",
     rating: { rate: 2.1, count: 430 },
     stock: 100
