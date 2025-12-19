@@ -235,94 +235,98 @@ app.get('/api/admin/users', async (req, res) => {
   res.json(users);
 });
 
-// checkout process
+// checkout process (logged-in users only)
 app.post('/api/checkout', async (req, res) => {
-  const { userData, cartItems, totalAmount } = req.body;
-  
-  if (!userData?.email) {
-    return res.status(400).json({ success: false, error: "Email is required" });
+  const { userId, cartItems, totalAmount, shipping, payment, saveToProfile } = req.body;
+
+  const uid = Number(userId);
+  if (!Number.isInteger(uid)) {
+    return res.status(400).json({ success: false, error: "userId is required (login/register first)" });
+  }
+
+  if (!Array.isArray(cartItems) || cartItems.length === 0) {
+    return res.status(400).json({ success: false, error: "Cart is empty" });
+  }
+
+  const total = Number(totalAmount);
+  if (!Number.isFinite(total)) {
+    return res.status(400).json({ success: false, error: "Invalid totalAmount" });
   }
 
   try {
-    // We use a transaction to ensure that if any part fails, 
-    // nothing is saved to the database.
     const result = await prisma.$transaction(async (tx) => {
-      
-      // A. Handle User (Find existing or create new)
-      const fullName =
-        userData?.name ||
-        [userData?.firstName, userData?.lastName].filter(Boolean).join(" ").trim() ||
-        "Guest";
+      const user = await tx.user.findUnique({ where: { id: uid } });
+      if (!user) {
+        throw new Error("User not found. Please login again.");
+      }
 
-      const user = await tx.user.upsert({
-        where: { email: userData.email },
-        update: {
-          name: fullName,
-          shippingAddress: userData.address || null,
-          shippingAddress2: userData.address2 || null,
-          shippingCountry: userData.country || null,
-          shippingState: userData.state || null,
-          shippingZip: userData.zip || null,
-        },
-        create: {
-          email: userData.email,
-          name: fullName,
-          password: "guest_password_123", // plain text for now
-          role: "CUSTOMER",
-          shippingAddress: userData.address || null,
-          shippingAddress2: userData.address2 || null,
-          shippingCountry: userData.country || null,
-          shippingState: userData.state || null,
-          shippingZip: userData.zip || null,
-        },
-      });
+      // Optional: update the user's saved defaults (ONLY if user chose to save)
+      if (saveToProfile) {
+        await tx.user.update({
+          where: { id: uid },
+          data: {
+            shippingAddress: shipping?.shippingAddress ?? undefined,
+            shippingAddress2: shipping?.shippingAddress2 ?? undefined,
+            shippingCountry: shipping?.shippingCountry ?? undefined,
+            shippingState: shipping?.shippingState ?? undefined,
+            shippingZip: shipping?.shippingZip ?? undefined,
 
-      // B. Create the Order and OrderItems
+            cardName: payment?.cardName ?? undefined,
+            cardNumber: payment?.cardNumber ?? undefined,
+            cardExpiry: payment?.cardExpiry ?? undefined,
+          },
+        });
+      }
+
+      // Validate stock first (fail early)
+      for (const item of cartItems) {
+        const pid = Number(item.id);
+        const qty = Number(item.qty);
+
+        if (!Number.isInteger(pid) || !Number.isInteger(qty) || qty <= 0) {
+          throw new Error("Invalid cart item");
+        }
+
+        const product = await tx.product.findUnique({ where: { id: pid } });
+        if (!product) throw new Error("Product not found");
+        if (product.stock < qty) throw new Error(`Product "${product.title}" is out of stock!`);
+      }
+
+      // Create order + items
       const order = await tx.order.create({
         data: {
-          userId: user.id,
-          total: parseFloat(totalAmount),
+          userId: uid,
+          total: total,
           items: {
             create: cartItems.map((item) => ({
-              productId: item.id,
-              quantity: item.qty,
+              productId: Number(item.id),
+              quantity: Number(item.qty),
             })),
           },
         },
       });
 
-      // C. Update Inventory (Subtract stock)
+      // Decrement stock
       for (const item of cartItems) {
-        const product = await tx.product.findUnique({ where: { id: item.id } });
-        
-        if (!product || product.stock < item.qty) {
-          throw new Error(`Product ${item.title} is out of stock!`);
-        }
-
         await tx.product.update({
-          where: { id: item.id },
-          data: {
-            stock: {
-              decrement: item.qty
-            }
-          }
+          where: { id: Number(item.id) },
+          data: { stock: { decrement: Number(item.qty) } },
         });
       }
 
       return order;
     });
 
-    res.status(201).json({ 
-      success: true, 
-      message: 'Order placed successfully', 
-      orderId: result.id 
+    res.status(201).json({
+      success: true,
+      message: "Order placed successfully",
+      orderId: result.id,
     });
-
   } catch (error) {
-    console.error('Checkout error:', error.message);
-    res.status(400).json({ 
-      success: false, 
-      error: error.message || 'Checkout failed' 
+    console.error("Checkout error:", error.message);
+    res.status(400).json({
+      success: false,
+      error: error.message || "Checkout failed",
     });
   }
 });

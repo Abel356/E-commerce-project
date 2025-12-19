@@ -1,291 +1,263 @@
-import { useState } from "react";
-import { Footer, Navbar } from "../components";
+import { useEffect, useMemo, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { Link, useNavigate } from "react-router-dom";
+import { Navbar, Footer } from "../components";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import { emptyCart } from "../redux/action";
 
-const EmptyCart = () => {
-  return (
-    <div className="container">
-      <div className="row">
-        <div className="col-md-12 py-5 bg-light text-center">
-          <h4 className="p-3 display-5">No item in Cart</h4>
-          <Link to="/" className="btn btn-outline-dark mx-4">
-            <i className="fa fa-arrow-left"></i> Continue Shopping
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const ShowCheckout = ({ state, formData, handleInputChange, handleSubmit }) => {
-  const shipping = 30.0;
-
-  const subtotal = state.reduce((sum, item) => sum + item.price * item.qty, 0);
-  const totalItems = state.reduce((sum, item) => sum + item.qty, 0);
-
-  return (
-    <div className="container py-5">
-      <div className="row my-4">
-        <div className="col-md-5 col-lg-4 order-md-last">
-          <div className="card mb-4">
-            <div className="card-header py-3 bg-light">
-              <h5 className="mb-0">Order Summary</h5>
-            </div>
-            <div className="card-body">
-              <ul className="list-group list-group-flush">
-                <li className="list-group-item d-flex justify-content-between align-items-center border-0 px-0 pb-0">
-                  Products ({totalItems}) <span>${Math.round(subtotal)}</span>
-                </li>
-                <li className="list-group-item d-flex justify-content-between align-items-center px-0">
-                  Shipping <span>${shipping}</span>
-                </li>
-                <li className="list-group-item d-flex justify-content-between align-items-center border-0 px-0 mb-3">
-                  <div>
-                    <strong>Total amount</strong>
-                  </div>
-                  <span>
-                    <strong>${Math.round(subtotal + shipping)}</strong>
-                  </span>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-md-7 col-lg-8">
-          <div className="card mb-4">
-            <div className="card-header py-3">
-              <h4 className="mb-0">Billing address</h4>
-            </div>
-            <div className="card-body">
-              <form className="needs-validation" noValidate onSubmit={handleSubmit}>
-                <div className="row g-3">
-                  <div className="col-sm-6 my-1">
-                    <label htmlFor="firstName" className="form-label">
-                      First name
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="firstName"
-                      value={formData.firstName}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-
-                  <div className="col-sm-6 my-1">
-                    <label htmlFor="lastName" className="form-label">
-                      Last name
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="lastName"
-                      value={formData.lastName}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-
-                  <div className="col-12 my-1">
-                    <label htmlFor="email" className="form-label">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      className="form-control"
-                      id="email"
-                      placeholder="you@example.com"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-
-                  <div className="col-12 my-1">
-                    <label htmlFor="address" className="form-label">
-                      Address
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="address"
-                      placeholder="1234 Main St"
-                      value={formData.address}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-
-                  <div className="col-12 my-1">
-                    <label htmlFor="address2" className="form-label">
-                      Address 2 <span className="text-muted">(Optional)</span>
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="address2"
-                      placeholder="Apartment or suite"
-                    />
-                  </div>
-
-                  <div className="col-md-5 my-1">
-                    <label htmlFor="country" className="form-label">
-                      Country
-                    </label>
-                    <select
-                      className="form-select"
-                      id="country"
-                      value={formData.country}
-                      onChange={handleInputChange}
-                      required
-                    >
-                      <option value="India">India</option>
-                    </select>
-                  </div>
-
-                  <div className="col-md-4 my-1">
-                    <label htmlFor="state" className="form-label">
-                      State
-                    </label>
-                    <select
-                      className="form-select"
-                      id="state"
-                      value={formData.state}
-                      onChange={handleInputChange}
-                      required
-                    >
-                      <option value="Punjab">Punjab</option>
-                    </select>
-                  </div>
-
-                  <div className="col-md-3 my-1">
-                    <label htmlFor="zip" className="form-label">
-                      Zip
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="zip"
-                      value={formData.zip}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <hr className="my-4" />
-
-                <h4 className="mb-3">Payment</h4>
-
-                <div className="row gy-3">
-                  <div className="col-md-6">
-                    <label htmlFor="cc-name" className="form-label">
-                      Name on card
-                    </label>
-                    <input type="text" className="form-control" id="cc-name" required />
-                  </div>
-
-                  <div className="col-md-6">
-                    <label htmlFor="cc-number" className="form-label">
-                      Card number
-                    </label>
-                    <input type="text" className="form-control" id="cc-number" required />
-                  </div>
-
-                  <div className="col-md-3">
-                    <label htmlFor="cc-expiration" className="form-label">
-                      Expiration
-                    </label>
-                    <input type="text" className="form-control" id="cc-expiration" required />
-                  </div>
-
-                  <div className="col-md-3">
-                    <label htmlFor="cc-cvv" className="form-label">
-                      CVV
-                    </label>
-                    <input type="text" className="form-control" id="cc-cvv" required />
-                  </div>
-                </div>
-
-                <hr className="my-4" />
-
-                <button className="w-100 btn btn-primary" type="submit">
-                  Continue to checkout
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const Checkout = () => {
-  const state = useSelector((state) => state.handleCart);
-  const dispatch = useDispatch();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const cart = useSelector((state) => state.handleCart);
 
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
+  const totalAmount = useMemo(() => {
+    return cart.reduce((sum, item) => sum + Number(item.price) * Number(item.qty), 0);
+  }, [cart]);
+
+  const [authUser, setAuthUser] = useState(null);
+
+  // Auth forms (shown when not logged in)
+  const [loginData, setLoginData] = useState({ email: "", password: "" });
+
+  const [registerData, setRegisterData] = useState({
+    name: "",
     email: "",
-    address: "",
-    country: "India",
-    state: "Punjab",
-    zip: "",
+    password: "",
+
+    shippingAddress: "",
+    shippingAddress2: "",
+    shippingCountry: "",
+    shippingState: "",
+    shippingZip: "",
+
+    cardName: "",
+    cardNumber: "",
+    cardExpiry: "",
   });
 
-  const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.id]: e.target.value });
-  };
+  // Checkout info (loaded from profile, or temporary)
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [savedProfile, setSavedProfile] = useState(null);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const [useSavedInfo, setUseSavedInfo] = useState(true);
+  const [saveToProfile, setSaveToProfile] = useState(false);
 
-    const shipping = 30.0;
-    const subtotal = state.reduce((sum, item) => sum + item.price * item.qty, 0);
-    const totalAmount = subtotal + shipping;
+  const [checkoutInfo, setCheckoutInfo] = useState({
+    shippingAddress: "",
+    shippingAddress2: "",
+    shippingCountry: "",
+    shippingState: "",
+    shippingZip: "",
+    cardName: "",
+    cardNumber: "",
+    cardExpiry: "",
+  });
 
-    const orderPayload = {
-      userData: formData,
-      cartItems: state,
-      totalAmount,
-    };
+  useEffect(() => {
+    const stored = localStorage.getItem("user");
+    if (!stored) return;
 
     try {
-      const response = await fetch("http://localhost:5000/api/checkout", {
+      setAuthUser(JSON.parse(stored));
+    } catch {
+      localStorage.removeItem("user");
+      setAuthUser(null);
+    }
+  }, []);
+
+  // Load saved profile for logged-in users
+  useEffect(() => {
+    if (!authUser?.id) return;
+
+    const loadProfile = async () => {
+      setLoadingProfile(true);
+      try {
+        const res = await fetch(`/api/users/${authUser.id}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || "Failed to load profile");
+
+        setSavedProfile(data);
+
+        setCheckoutInfo({
+          shippingAddress: data.shippingAddress || "",
+          shippingAddress2: data.shippingAddress2 || "",
+          shippingCountry: data.shippingCountry || "",
+          shippingState: data.shippingState || "",
+          shippingZip: data.shippingZip || "",
+          cardName: data.cardName || "",
+          cardNumber: data.cardNumber || "",
+          cardExpiry: data.cardExpiry || "",
+        });
+      } catch (e) {
+        console.error(e);
+        toast.error("Could not load saved checkout info");
+      } finally {
+        setLoadingProfile(false);
+      }
+    };
+
+    loadProfile();
+  }, [authUser]);
+
+  // When user switches back to "Use saved", re-apply saved values and lock fields
+  useEffect(() => {
+    if (!useSavedInfo || !savedProfile) return;
+
+    setCheckoutInfo({
+      shippingAddress: savedProfile.shippingAddress || "",
+      shippingAddress2: savedProfile.shippingAddress2 || "",
+      shippingCountry: savedProfile.shippingCountry || "",
+      shippingState: savedProfile.shippingState || "",
+      shippingZip: savedProfile.shippingZip || "",
+      cardName: savedProfile.cardName || "",
+      cardNumber: savedProfile.cardNumber || "",
+      cardExpiry: savedProfile.cardExpiry || "",
+    });
+
+    setSaveToProfile(false);
+  }, [useSavedInfo, savedProfile]);
+
+  const onCheckoutChange = (e) => {
+    const { name, value } = e.target;
+    setCheckoutInfo((p) => ({ ...p, [name]: value }));
+  };
+
+  const onLoginChange = (e) => {
+    const { id, value } = e.target;
+    setLoginData((p) => ({ ...p, [id]: value }));
+  };
+
+  const onRegisterChange = (e) => {
+    const { id, value } = e.target;
+    setRegisterData((p) => ({ ...p, [id]: value }));
+  };
+
+  const doLogin = async (e) => {
+    e.preventDefault();
+
+    try {
+      const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(orderPayload),
+        body: JSON.stringify({
+          email: loginData.email,
+          password: loginData.password,
+        }),
       });
 
-      const data = await response.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Login failed");
 
-      if (data.success) {
-        const summaryInfo = {
-          name: `${formData.firstName} ${formData.lastName}`.trim(),
-          email: formData.email,
-          items: [...state],
+      localStorage.setItem("user", JSON.stringify(data.user));
+      setAuthUser(data.user);
+      toast.success("Logged in. Keep going.");
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || "Login failed");
+    }
+  };
+
+  const doRegister = async (e) => {
+    e.preventDefault();
+
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(registerData),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Registration failed");
+
+      // Register endpoint returns id/email/name/role, store it so checkout can attach orders to this user
+      const newUser = {
+        id: data.id,
+        email: data.email,
+        name: data.name,
+        role: data.role,
+      };
+
+      localStorage.setItem("user", JSON.stringify(newUser));
+      setAuthUser(newUser);
+
+      toast.success("Account created. You’re checked in.");
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || "Registration failed");
+    }
+  };
+
+  const placeOrder = async (e) => {
+    e.preventDefault();
+
+    if (!authUser?.id) {
+      toast.error("Login or create an account first");
+      return;
+    }
+
+    if (cart.length === 0) {
+      toast.error("Your cart is empty");
+      return;
+    }
+
+    // basic “real life” checks, so you don’t submit blank shipping/payment
+    if (!checkoutInfo.shippingAddress || !checkoutInfo.shippingCountry || !checkoutInfo.shippingZip) {
+      toast.error("Shipping address is incomplete");
+      return;
+    }
+    if (!checkoutInfo.cardName || !checkoutInfo.cardNumber || !checkoutInfo.cardExpiry) {
+      toast.error("Payment info is incomplete");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: authUser.id,
+          cartItems: cart.map((it) => ({
+            id: it.id,
+            qty: it.qty,
+            title: it.title,
+          })),
+          totalAmount: totalAmount,
+          shipping: {
+            shippingAddress: checkoutInfo.shippingAddress,
+            shippingAddress2: checkoutInfo.shippingAddress2,
+            shippingCountry: checkoutInfo.shippingCountry,
+            shippingState: checkoutInfo.shippingState,
+            shippingZip: checkoutInfo.shippingZip,
+          },
+          payment: {
+            cardName: checkoutInfo.cardName,
+            cardNumber: checkoutInfo.cardNumber,
+            cardExpiry: checkoutInfo.cardExpiry,
+          },
+          saveToProfile: !useSavedInfo && saveToProfile,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Checkout failed");
+
+      toast.success("Order placed!");
+
+      const buyerName = authUser.name || authUser.email;
+
+      dispatch(emptyCart());
+
+      navigate("/order-summary", {
+        state: {
+          name: buyerName,
+          items: cart,
           total: totalAmount,
-          orderId: data.orderId,
-        };
-
-        alert(`Order Successful! Your Order ID is: ${data.orderId}`);
-        dispatch(emptyCart());
-
-        // If you don't have an OrderSummary page/route, change this to navigate("/")
-        navigate("/order-summary", { state: summaryInfo });
-      } else {
-        alert("Error: " + data.error);
-      }
-    } catch (error) {
-      console.error("Checkout Error:", error);
-      alert("Failed to connect to the server.");
+        },
+      });
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || "Checkout failed");
     }
   };
 
@@ -295,15 +267,421 @@ const Checkout = () => {
       <div className="container my-3 py-3">
         <h1 className="text-center">Checkout</h1>
         <hr />
-        {state.length ? (
-          <ShowCheckout
-            state={state}
-            formData={formData}
-            handleInputChange={handleInputChange}
-            handleSubmit={handleSubmit}
-          />
+
+        {/* If not logged in: show prompt to login or create account */}
+        {!authUser ? (
+          <div className="row g-4">
+            <div className="col-12">
+              <p className="text-muted text-center m-0">
+                Login or create an account to complete checkout. Your cart stays here.
+              </p>
+            </div>
+
+            <div className="col-12 col-lg-6">
+              <div className="card">
+                <div className="card-header bg-light">
+                  <strong>Login</strong>
+                </div>
+                <div className="card-body">
+                  <form onSubmit={doLogin}>
+                    <div className="mb-3">
+                      <label className="form-label">Email</label>
+                      <input
+                        id="email"
+                        type="email"
+                        className="form-control"
+                        value={loginData.email}
+                        onChange={onLoginChange}
+                        required
+                      />
+                    </div>
+
+                    <div className="mb-3">
+                      <label className="form-label">Password</label>
+                      <input
+                        id="password"
+                        type="password"
+                        className="form-control"
+                        value={loginData.password}
+                        onChange={onLoginChange}
+                        required
+                      />
+                    </div>
+
+                    <button className="btn btn-dark w-100" type="submit">
+                      Login and continue
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+
+            <div className="col-12 col-lg-6">
+              <div className="card">
+                <div className="card-header bg-light">
+                  <strong>Create Account</strong>
+                </div>
+                <div className="card-body">
+                  <form onSubmit={doRegister}>
+                    <div className="mb-3">
+                      <label className="form-label">Full Name</label>
+                      <input
+                        id="name"
+                        type="text"
+                        className="form-control"
+                        value={registerData.name}
+                        onChange={onRegisterChange}
+                        required
+                      />
+                    </div>
+
+                    <div className="mb-3">
+                      <label className="form-label">Email</label>
+                      <input
+                        id="email"
+                        type="email"
+                        className="form-control"
+                        value={registerData.email}
+                        onChange={onRegisterChange}
+                        required
+                      />
+                    </div>
+
+                    <div className="mb-3">
+                      <label className="form-label">Password</label>
+                      <input
+                        id="password"
+                        type="password"
+                        className="form-control"
+                        value={registerData.password}
+                        onChange={onRegisterChange}
+                        required
+                      />
+                    </div>
+
+                    <hr />
+
+                    <h6 className="mb-3">Default Shipping</h6>
+
+                    <div className="mb-3">
+                      <label className="form-label">Address</label>
+                      <input
+                        id="shippingAddress"
+                        type="text"
+                        className="form-control"
+                        value={registerData.shippingAddress}
+                        onChange={onRegisterChange}
+                        required
+                      />
+                    </div>
+
+                    <div className="mb-3">
+                      <label className="form-label">Address 2</label>
+                      <input
+                        id="shippingAddress2"
+                        type="text"
+                        className="form-control"
+                        value={registerData.shippingAddress2}
+                        onChange={onRegisterChange}
+                      />
+                    </div>
+
+                    <div className="row">
+                      <div className="col-md-4 mb-3">
+                        <label className="form-label">Country</label>
+                        <input
+                          id="shippingCountry"
+                          type="text"
+                          className="form-control"
+                          value={registerData.shippingCountry}
+                          onChange={onRegisterChange}
+                          required
+                        />
+                      </div>
+                      <div className="col-md-4 mb-3">
+                        <label className="form-label">State/Province</label>
+                        <input
+                          id="shippingState"
+                          type="text"
+                          className="form-control"
+                          value={registerData.shippingState}
+                          onChange={onRegisterChange}
+                          required
+                        />
+                      </div>
+                      <div className="col-md-4 mb-3">
+                        <label className="form-label">Postal/Zip</label>
+                        <input
+                          id="shippingZip"
+                          type="text"
+                          className="form-control"
+                          value={registerData.shippingZip}
+                          onChange={onRegisterChange}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <hr />
+
+                    <h6 className="mb-3">Default Payment</h6>
+
+                    <div className="mb-3">
+                      <label className="form-label">Name on card</label>
+                      <input
+                        id="cardName"
+                        type="text"
+                        className="form-control"
+                        value={registerData.cardName}
+                        onChange={onRegisterChange}
+                        required
+                      />
+                    </div>
+
+                    <div className="row">
+                      <div className="col-md-8 mb-3">
+                        <label className="form-label">Card number</label>
+                        <input
+                          id="cardNumber"
+                          type="text"
+                          className="form-control"
+                          value={registerData.cardNumber}
+                          onChange={onRegisterChange}
+                          required
+                        />
+                      </div>
+                      <div className="col-md-4 mb-3">
+                        <label className="form-label">Expiry</label>
+                        <input
+                          id="cardExpiry"
+                          type="text"
+                          className="form-control"
+                          value={registerData.cardExpiry}
+                          onChange={onRegisterChange}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <button className="btn btn-dark w-100" type="submit">
+                      Create account and continue
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
         ) : (
-          <EmptyCart />
+          // Logged in checkout form
+          <div className="row g-4">
+            <div className="col-12 col-lg-5">
+              <div className="card">
+                <div className="card-header bg-light">
+                  <strong>Order Summary</strong>
+                </div>
+                <div className="card-body">
+                  {cart.length === 0 ? (
+                    <p className="text-muted m-0">Your cart is empty.</p>
+                  ) : (
+                    <>
+                      <ul className="list-group mb-3">
+                        {cart.map((item) => (
+                          <li key={item.id} className="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                              <div style={{ fontSize: 14 }}>{item.title}</div>
+                              <div className="text-muted" style={{ fontSize: 13 }}>
+                                Qty: {item.qty}
+                              </div>
+                            </div>
+                            <div>${(Number(item.price) * Number(item.qty)).toFixed(2)}</div>
+                          </li>
+                        ))}
+                      </ul>
+
+                      <div className="d-flex justify-content-between">
+                        <strong>Total</strong>
+                        <strong>${totalAmount.toFixed(2)}</strong>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="col-12 col-lg-7">
+              <div className="card">
+                <div className="card-header bg-light">
+                  <strong>Shipping and Payment</strong>
+                </div>
+                <div className="card-body">
+                  {loadingProfile ? (
+                    <p className="text-muted m-0">Loading saved info...</p>
+                  ) : (
+                    <form onSubmit={placeOrder}>
+                      <div className="mb-3">
+                        <div className="text-muted" style={{ fontSize: 13 }}>
+                          Logged in as: <strong>{authUser.email}</strong>
+                        </div>
+                      </div>
+
+                      <div className="mb-3">
+                        <div className="form-check">
+                          <input
+                            className="form-check-input"
+                            type="radio"
+                            name="useSaved"
+                            id="useSavedYes"
+                            checked={useSavedInfo}
+                            onChange={() => setUseSavedInfo(true)}
+                          />
+                          <label className="form-check-label" htmlFor="useSavedYes">
+                            Use saved billing and shipping info
+                          </label>
+                        </div>
+
+                        <div className="form-check">
+                          <input
+                            className="form-check-input"
+                            type="radio"
+                            name="useSaved"
+                            id="useSavedNo"
+                            checked={!useSavedInfo}
+                            onChange={() => setUseSavedInfo(false)}
+                          />
+                          <label className="form-check-label" htmlFor="useSavedNo">
+                            Use different info for this order
+                          </label>
+                        </div>
+
+                        {!useSavedInfo && (
+                          <div className="form-check mt-2">
+                            <input
+                              className="form-check-input"
+                              type="checkbox"
+                              id="saveToProfile"
+                              checked={saveToProfile}
+                              onChange={(e) => setSaveToProfile(e.target.checked)}
+                            />
+                            <label className="form-check-label" htmlFor="saveToProfile">
+                              Save this as my default account info
+                            </label>
+                          </div>
+                        )}
+                      </div>
+
+                      <hr />
+
+                      <h6 className="mb-3">Shipping</h6>
+
+                      <div className="mb-3">
+                        <label className="form-label">Address</label>
+                        <input
+                          className="form-control"
+                          name="shippingAddress"
+                          value={checkoutInfo.shippingAddress}
+                          onChange={onCheckoutChange}
+                          disabled={useSavedInfo}
+                          required
+                        />
+                      </div>
+
+                      <div className="mb-3">
+                        <label className="form-label">Address 2</label>
+                        <input
+                          className="form-control"
+                          name="shippingAddress2"
+                          value={checkoutInfo.shippingAddress2}
+                          onChange={onCheckoutChange}
+                          disabled={useSavedInfo}
+                        />
+                      </div>
+
+                      <div className="row">
+                        <div className="col-md-4 mb-3">
+                          <label className="form-label">Country</label>
+                          <input
+                            className="form-control"
+                            name="shippingCountry"
+                            value={checkoutInfo.shippingCountry}
+                            onChange={onCheckoutChange}
+                            disabled={useSavedInfo}
+                            required
+                          />
+                        </div>
+                        <div className="col-md-4 mb-3">
+                          <label className="form-label">State/Province</label>
+                          <input
+                            className="form-control"
+                            name="shippingState"
+                            value={checkoutInfo.shippingState}
+                            onChange={onCheckoutChange}
+                            disabled={useSavedInfo}
+                            required
+                          />
+                        </div>
+                        <div className="col-md-4 mb-3">
+                          <label className="form-label">Postal/Zip</label>
+                          <input
+                            className="form-control"
+                            name="shippingZip"
+                            value={checkoutInfo.shippingZip}
+                            onChange={onCheckoutChange}
+                            disabled={useSavedInfo}
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <hr />
+
+                      <h6 className="mb-3">Payment</h6>
+
+                      <div className="mb-3">
+                        <label className="form-label">Name on card</label>
+                        <input
+                          className="form-control"
+                          name="cardName"
+                          value={checkoutInfo.cardName}
+                          onChange={onCheckoutChange}
+                          disabled={useSavedInfo}
+                          required
+                        />
+                      </div>
+
+                      <div className="row">
+                        <div className="col-md-8 mb-3">
+                          <label className="form-label">Card number</label>
+                          <input
+                            className="form-control"
+                            name="cardNumber"
+                            value={checkoutInfo.cardNumber}
+                            onChange={onCheckoutChange}
+                            disabled={useSavedInfo}
+                            required
+                          />
+                        </div>
+                        <div className="col-md-4 mb-3">
+                          <label className="form-label">Expiry</label>
+                          <input
+                            className="form-control"
+                            name="cardExpiry"
+                            value={checkoutInfo.cardExpiry}
+                            onChange={onCheckoutChange}
+                            disabled={useSavedInfo}
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <button className="btn btn-dark w-100" type="submit" disabled={cart.length === 0}>
+                        Place Order
+                      </button>
+                    </form>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </div>
       <Footer />
