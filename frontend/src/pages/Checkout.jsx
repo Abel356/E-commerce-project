@@ -9,6 +9,11 @@ const Checkout = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const cart = useSelector((state) => state.handleCart);
+  const [submitting, setSubmitting] = useState(false);
+
+  const onQuit = () => {
+    navigate("/cart");
+  };
 
   const totalAmount = useMemo(() => {
     return cart.reduce((sum, item) => sum + Number(item.price) * Number(item.qty), 0);
@@ -191,23 +196,29 @@ const Checkout = () => {
   const placeOrder = async (e) => {
     e.preventDefault();
 
+    if (submitting) return; // prevent spam clicking
+    setSubmitting(true);
+
     if (!authUser?.id) {
       toast.error("Login or create an account first");
+      setSubmitting(false);
       return;
     }
 
     if (cart.length === 0) {
       toast.error("Your cart is empty");
+      setSubmitting(false);
       return;
     }
 
-    // basic “real life” checks, so you don’t submit blank shipping/payment
     if (!checkoutInfo.shippingAddress || !checkoutInfo.shippingCountry || !checkoutInfo.shippingZip) {
       toast.error("Shipping address is incomplete");
+      setSubmitting(false);
       return;
     }
     if (!checkoutInfo.cardName || !checkoutInfo.cardNumber || !checkoutInfo.cardExpiry) {
       toast.error("Payment info is incomplete");
+      setSubmitting(false);
       return;
     }
 
@@ -222,7 +233,7 @@ const Checkout = () => {
             qty: it.qty,
             title: it.title,
           })),
-          totalAmount: totalAmount,
+          totalAmount,
           shipping: {
             shippingAddress: checkoutInfo.shippingAddress,
             shippingAddress2: checkoutInfo.shippingAddress2,
@@ -240,24 +251,32 @@ const Checkout = () => {
       });
 
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || "Checkout failed");
+
+      if (!res.ok || data?.success === false) {
+        toast.error(data?.error || "Checkout failed");
+        return; // stay on page, user can re-enter or quit
+      }
 
       toast.success("Order placed!");
 
       const buyerName = authUser.name || authUser.email;
+      const itemsSnapshot = [...cart]; // snapshot before emptyCart
 
       dispatch(emptyCart());
 
       navigate("/order-summary", {
         state: {
           name: buyerName,
-          items: cart,
+          items: itemsSnapshot,
           total: totalAmount,
+          orderId: data.orderId,
         },
       });
     } catch (err) {
       console.error(err);
-      toast.error(err.message || "Checkout failed");
+      toast.error("Checkout failed");
+    } finally {
+      setSubmitting(false); // always unlock
     }
   };
 
@@ -673,9 +692,15 @@ const Checkout = () => {
                         </div>
                       </div>
 
-                      <button className="btn btn-dark w-100" type="submit" disabled={cart.length === 0}>
-                        Place Order
-                      </button>
+                      <div className="d-flex gap-2">
+                        <button type="button" className="btn btn-outline-secondary w-50" onClick={onQuit} disabled={submitting}>
+                          Quit
+                        </button>
+
+                        <button className="btn btn-dark w-50" type="submit" disabled={cart.length === 0 || submitting}>
+                          {submitting ? "Processing..." : "Place Order"}
+                        </button>
+                      </div>
                     </form>
                   )}
                 </div>

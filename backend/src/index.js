@@ -6,6 +6,14 @@ const prisma = new PrismaClient();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// ----- Mock payment authorization (every 3rd attempt fails) -----
+let paymentAttemptCounter = 0;
+function authorizePaymentMock() {
+  paymentAttemptCounter += 1;
+  // deny every 3rd request
+  return paymentAttemptCounter % 3 !== 0;
+}
+
 // Middleware
 app.use(cors({
   origin: 'http://localhost:3000', // react frontend URL
@@ -251,6 +259,14 @@ app.post('/api/checkout', async (req, res) => {
   const total = Number(totalAmount);
   if (!Number.isFinite(total)) {
     return res.status(400).json({ success: false, error: "Invalid totalAmount" });
+  }
+
+  // mock payment authorization
+  if (!authorizePaymentMock()) {
+    return res.status(402).json({
+      success: false,
+      error: "Credit Card Authorization Failed.",
+    });
   }
 
   try {
