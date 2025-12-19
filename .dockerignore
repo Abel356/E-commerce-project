@@ -1,0 +1,32 @@
+# Dependency/Build Directories
+node_modules
+npm-debug.log
+.npm
+
+# Keep source code for Docker builds (don't ignore src/ts/tsconfig)
+# (If you want to ignore frontend src only, do it explicitly like frontend/src)
+
+# Project Files
+.git
+.gitignore
+.DS_Store
+*.log
+
+# Environment/Configuration Files
+.env
+
+# Development/Testing files and directories
+test
+tests
+__tests__
+docs
+coverage
+.nyc_output
+tmp
+*~
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
