@@ -8,7 +8,8 @@
     "dev": "nodemon src/index.js",
     "seed": "node prisma/seed.js",
     "migrate": "npx prisma migrate dev",
-    "prisma:studio": "npx prisma studio"
+    "prisma:studio": "npx prisma studio",
+    "vercel-build": "npx prisma generate && npx prisma db push && node prisma/seed.js"
   },
   "keywords": [],
   "author": "",
